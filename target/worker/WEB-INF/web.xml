@@ -12,8 +12,9 @@
          </init-param>
          <init-param>
            <param-name>master</param-name>
-           <param-value>127.0.0.1:3000</param-value>
+           <param-value>127.0.0.1:8080</param-value>
          </init-param>
+         <load-on-startup>2</load-on-startup>
      </servlet>
 
      <servlet-mapping>

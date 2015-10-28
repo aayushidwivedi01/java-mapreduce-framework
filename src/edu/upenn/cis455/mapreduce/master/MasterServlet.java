@@ -1,6 +1,7 @@
 package edu.upenn.cis455.mapreduce.master;
 
 import java.io.*;
+import java.net.Socket;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
@@ -11,28 +12,49 @@ import javax.servlet.http.*;
 public class MasterServlet extends HttpServlet {
 
   static final long serialVersionUID = 455555001;
-  HashMap<String,WorkerStatus>workerstatusMap = new HashMap<>();
+  private HashMap<String,WorkerStatus>workerstatusMap;
 
+  public void init(){
+	  workerstatusMap = new HashMap<>();
+  }
+  public void doPost(HttpServletRequest request, HttpServletResponse response){
+	  String html = null;
+	  String pathInfo = request.getPathInfo();
+	  System.out.println(pathInfo);
+	  if (pathInfo.equals("/status/newjob")){
+		  for (String key : workerstatusMap.keySet()){
+			  String ip = key.split(":")[0];
+			  int port = Integer.parseInt(key.split(":")[1]);
+			  try {
+				Socket socket = new Socket(ip, port);
+				OutputStream out = socket.getOutputStream();
+				out.write("POST /worker/runmap HTTP/1.0".getBytes());
+				out.flush();
+				out.close();
+				socket.close();
+			} catch (IOException e) {
+		
+				e.printStackTrace();
+			}
+			  
+		  }
+	  }
+  }
+  
   public void doGet(HttpServletRequest request, HttpServletResponse response) 
        throws java.io.IOException
   {
-//    response.setContentType("text/html");
-//    PrintWriter out = response.getWriter();
-//    out.println("<html><head><title>Master</title></head>");
-//    out.println("<body>Hi, I am the master!</body></html>");
-//    out.flush();
-//    out.close();
 	  String html = null;
 	  String pathInfo = request.getPathInfo();
-	  
-	  if (pathInfo.equals("/master/workerstatus")){
+	  System.out.println(pathInfo);
+	  if (pathInfo.equals("/workerstatus")){
 		  
 		  long timestamp = new Date().getTime();
 		  WorkerStatus ws = new WorkerStatus(request, timestamp);
 		  workerstatusMap.put(ws.getIpPort(), ws);		
 		  html = "<html> Done </html>";
 	  }
-	  else if (pathInfo.equals("/master/status")){
+	  else if (pathInfo.equals("/status")){
 		  html = HtmlPages.statusPage(workerstatusMap);
 		  
 	  }

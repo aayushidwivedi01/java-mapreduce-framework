@@ -6,6 +6,7 @@
      <servlet>
          <servlet-name>MasterServlet</servlet-name>
          <servlet-class>edu.upenn.cis455.mapreduce.master.MasterServlet</servlet-class>
+         <load-on-startup>1</load-on-startup>
      </servlet>
 
      <servlet-mapping>

@@ -38,7 +38,7 @@ public class HtmlPages {
 		
 		html.append("</table>");
 		html.append("</br></br>");
-		html.append("<div><form action = \"post\"> Submit new job </br><label>Class name of the job:</label> ");
+		html.append("<div><form action=\"/master/status/newjob\" method =\"post\"> Submit new job </br><label>Class name of the job:</label> ");
 		html.append("<input type = \"text\" name = \"job\"/></br><label>Input directory:</label> ");
 		html.append("<input type = \"text\" name = \"inputDir\"/></br><label>Output directory:</label> ");
 		html.append("<input type = \"text\" name = \"outpuDir\"/></br><label>No. of map threads:</label> ");
@@ -48,6 +48,14 @@ public class HtmlPages {
 
 		 html.append("<input type=\"submit\" value=\"Submit\"></form></div>");
 
+		return html.toString();
+	}
+	
+	public String runMapPage(){
+		//TO-DO
+		StringBuilder html = new StringBuilder();
+		
+		html.append("");
 		return html.toString();
 	}
 
