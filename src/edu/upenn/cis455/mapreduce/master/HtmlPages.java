@@ -38,25 +38,49 @@ public class HtmlPages {
 		
 		html.append("</table>");
 		html.append("</br></br>");
-		html.append("<div><form action=\"/master/status/newjob\" method =\"post\"> Submit new job </br><label>Class name of the job:</label> ");
-		html.append("<input type = \"text\" name = \"job\"/></br><label>Input directory:</label> ");
-		html.append("<input type = \"text\" name = \"inputDir\"/></br><label>Output directory:</label> ");
-		html.append("<input type = \"text\" name = \"outpuDir\"/></br><label>No. of map threads:</label> ");
+		html.append("<form action=\"/master/status/newjob\" method =\"post\"> Job Form</br></br><label>Class name of the job:</label></br> ");
+		html.append("<input type = \"text\" name = \"job\"/></br><label>Input directory:</label> </br> ");
+		html.append("<input type = \"text\" name = \"input\"/></br><label>Output directory:</label></br>  ");
+		html.append("<input type = \"text\" name = \"output\"/></br><label>No. of map threads:</label> </br> ");
 		html.append("<input type = \"text\" name = \"numMap\"/></br><label>No. of reduce threads: </label>");
-		html.append("<input type = \"text\" name = \"numReduce\"/>");
-
-
-		 html.append("<input type=\"submit\" value=\"Submit\"></form></div>");
-
+		html.append("<input type = \"text\" name = \"numReduce\"/></br>");
+		html.append("<input type=\"submit\" value=\"Submit\"></form>");
+		html.append("</html>");
 		return html.toString();
 	}
 	
-	public String runMapPage(){
+	public static String runMapPage(){
 		//TO-DO
 		StringBuilder html = new StringBuilder();
 		
-		html.append("");
+		html.append("<html>Pocessing Job</html>");
 		return html.toString();
 	}
+	
+	public static String busyWorkersPage(){
+		StringBuilder html = new StringBuilder();
+	
+		html.append("<html> Sorry, cannot allocate this job.</br>All workers are busy!</br>");
+		html.append("<form action=\"/master/status\" method =\"get\">");
+		html.append("<input type=\"submit\" value=\"Back\"></form>");
+		html.append("</html>");
+		return html.toString();
+		
+	}
+	
+	public static String formRunMapRequest(JobDetails jobDetails){
+		StringBuilder html = new StringBuilder();
+		
+		html.append("<form action=\"/master/status/newjob\" method =\"post\">");
+		html.append("<input type=\"hidden\" name = \"job\" value=\""+jobDetails.getJob()+"\">");
+		html.append("<input type=\"hidden\" name = \"input\" value=\""+jobDetails.getInput()+"\">");
+		html.append("<input type=\"hidden\" name = \"output\" value=\""+jobDetails.getOutput()+"\">");
+		html.append("<input type=\"hidden\" name = \"numMap\" value=\""+jobDetails.getNumMap()+"\">");
+		html.append("<input type=\"hidden\" name = \"numReduce\" value=\""+jobDetails.getNumReduce()+"\">");
+		html.append("<input type=\"submit\" value=\"Submit\"></form>");
+		
+		return html.toString();
+	}
+	
 
 }

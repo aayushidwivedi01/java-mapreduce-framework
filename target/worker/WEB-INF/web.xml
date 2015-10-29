@@ -14,6 +14,10 @@
            <param-name>master</param-name>
            <param-value>127.0.0.1:8080</param-value>
          </init-param>
+         <init-param>
+           <param-name>worker</param-name>
+           <param-value>8080</param-value>
+         </init-param>
          <load-on-startup>2</load-on-startup>
      </servlet>
 
