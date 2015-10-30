@@ -7,8 +7,7 @@ public class WordCount implements Job {
 
   public void map(String key, String value, Context context)
   {
-    // Your map function for WordCount goes here
-
+	  context.write(key, value);
 
   }
   

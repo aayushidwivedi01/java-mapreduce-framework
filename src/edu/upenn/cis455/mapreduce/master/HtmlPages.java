@@ -42,7 +42,7 @@ public class HtmlPages {
 		html.append("<input type = \"text\" name = \"job\"/></br><label>Input directory:</label> </br> ");
 		html.append("<input type = \"text\" name = \"input\"/></br><label>Output directory:</label></br>  ");
 		html.append("<input type = \"text\" name = \"output\"/></br><label>No. of map threads:</label> </br> ");
-		html.append("<input type = \"text\" name = \"numMap\"/></br><label>No. of reduce threads: </label>");
+		html.append("<input type = \"text\" name = \"numMap\"/></br><label>No. of reduce threads: </label></br>");
 		html.append("<input type = \"text\" name = \"numReduce\"/></br>");
 		html.append("<input type=\"submit\" value=\"Submit\"></form>");
 		html.append("</html>");
