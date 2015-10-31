@@ -31,7 +31,7 @@ public class WorkerServlet extends HttpServlet {
 		HeartBeat heartBeat = new HeartBeat(masterPort, "8080");
 		heartBeat.start();
 	}
-//method to initialize worker map
+
 	public void statusMapInit() {
 		String port = getServletConfig().getInitParameter("worker");
 		statusMap.put("port", port);
