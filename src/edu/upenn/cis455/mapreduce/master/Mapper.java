@@ -1,4 +1,4 @@
-package edu.upenn.cis455.mapreduce.master;
+ package edu.upenn.cis455.mapreduce.master;
 
 import java.util.LinkedList;
 
@@ -11,16 +11,18 @@ import edu.upenn.cis455.mapreduce.worker.WorkerServlet;
 public class Mapper extends Thread {
 	private Job job;
 	private LinkedList<String> queue;
+	private int numWorkers;
 
-	public Mapper(WordCount job, LinkedList<String> queue) {
+	public Mapper(WordCount job, LinkedList<String> queue, int numWorkers) {
 		this.job = job;
 		this.queue = queue;
+		this.numWorkers = numWorkers;
 	}
 
 	public void run() {
 
 		System.out.println("Started " + Thread.currentThread().getName());
-
+		
 		while (true) {
 			synchronized (queue) {
 				System.out.println(queue);
@@ -30,7 +32,10 @@ public class Mapper extends Thread {
 						queue.wait();
 
 					} catch (InterruptedException e) {
-						System.out.println("Thread interrupted while waiting");
+						System.out.println("Thread interrupted while waiting" + WorkerServlet.getStop());
+						if (WorkerServlet.getStop()){
+							break;
+						}
 
 					}
 
@@ -40,11 +45,10 @@ public class Mapper extends Thread {
 					String line = queue.remove(0);
 					String key = line.split("\t")[0];
 					String value = line.split("\t")[1];
-					MapContext context = new MapContext();
+					String spoolOut = (new WorkerServlet()).getSpoolOut();
+					MapContext context = new MapContext(numWorkers, spoolOut);
 					job.map(key,  value,  context);
-					
-					if (queue.isEmpty() && WorkerServlet.getStop())
-						break;
+
 				}
 			}
 			System.out.println("mapper : inside while");

@@ -1,6 +1,7 @@
 package edu.upenn.cis455.mapreduce.worker;
 
 import java.io.*;
+import java.lang.Thread.State;
 import java.util.HashMap;
 import java.util.LinkedList;
 
@@ -20,7 +21,7 @@ public class WorkerServlet extends HttpServlet {
   private static boolean stop = false;
   private String spoolOut;
   private String spoolIn;
-  
+  private HashMap<String, String>allWorkers;
   public void init(){
 	  statusMap = new HashMap<>();
 	  statusMapInit();
@@ -59,10 +60,10 @@ public class WorkerServlet extends HttpServlet {
 	  return stop;
   }
   
-  public void generateMappers(int size, WordCount job, LinkedList<String>queue){
+  public void generateMappers(int size, WordCount job, LinkedList<String>queue, int  numWorkers){
 	  mapper = new Mapper[size];
 	  for (int i = 0; i < size ; i++){
-		  mapper[i] = new Mapper(job, queue);
+		  mapper[i] = new Mapper(job, queue,  numWorkers);
 		  mapper[i].setName("Mapper"+i);
 		  mapper[i].start();
 	  }
@@ -97,6 +98,34 @@ public class WorkerServlet extends HttpServlet {
 	 
   }
   
+  private void checkMapperStatus(int numWorkers){
+	  boolean waiting = false;
+	  int count = 0;
+	  while (!queue.isEmpty()){
+		  System.out.println("Queue not empty: " + queue.toString());
+	  }
+	  
+	  while (!waiting){
+		  count = 0;
+		  for (Thread th : mapper) {
+				if (th.getState() == State.RUNNABLE){
+					break;
+				}
+				else if (th.getState() == State.WAITING){
+					count++;
+					System.out.println("Count: " + count);
+					if (count == numWorkers ){
+						waiting = true;
+						System.out.println("Done waiting:" + count);
+						break;
+					}
+						
+					
+				}
+		  }
+	  }
+	  
+  }
   public void createSpools(String name){
 	  File file = new File(name);
 		
@@ -105,6 +134,10 @@ public class WorkerServlet extends HttpServlet {
 		}
 		
 		file.mkdir();
+  }
+  
+  public HashMap<String, String> getAllWorkers(){
+	  return allWorkers;
   }
   
   public void doPost(HttpServletRequest request, HttpServletResponse response){
@@ -118,7 +151,7 @@ public class WorkerServlet extends HttpServlet {
 		  String input = request.getParameter("input");
 		  int numThreads = Integer.parseInt(request.getParameter("numThreads"));
 		  int numWorkers = Integer.parseInt(request.getParameter("numWorkers"));
-		  HashMap<String, String>allWorkers = new HashMap<>();
+		  allWorkers = new HashMap<>();
 		  for (int i = 1; i <= numWorkers; i++){
 			  String key = "worker"+ i;
 			  allWorkers.put(key, request.getParameter(key));
@@ -146,14 +179,26 @@ public class WorkerServlet extends HttpServlet {
 			
 			
 			
-			generateMappers(numThreads, job, queue);
+			generateMappers(numThreads, job, queue,  numWorkers);
 			
 			//read all files in input directory
 			readFiles(input);
+		
+			
+			checkMapperStatus(numWorkers);
 			stop = true;
+			
+			for (Thread th : mapper) {
+				if (th.getState() == State.WAITING) {
+					System.out.println("Going to interrupt: " + th.getName());
+					th.interrupt();
+				}
+
+			}
 			for (Thread th : mapper){
 				try {
 					th.join();
+					System.out.println("Thread joining " + th.getName());
 				} catch (InterruptedException e) {
 					// TODO Auto-generated catch block
 					e.printStackTrace();
