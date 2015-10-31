@@ -19,9 +19,9 @@ public class HtmlPages {
 		
 		for (String key : map.keySet()){
 			WorkerStatus ws = map.get(key);
-			long timestamp = ws.getTimestamp()/1000;
-			long currTime = new Date().getTime()/1000;
-			if (currTime - timestamp < 30){
+			long timestamp = ws.getTimestamp();
+			long currTime = new Date().getTime();
+			if (currTime - timestamp < 30000){
 				html.append("<tr>");
 				html.append("<td>"+ ws.getIpPort() +"</td>");
 				html.append("<td>"+ ws.getJob() +"</td>");

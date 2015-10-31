@@ -58,8 +58,10 @@ public class MasterServlet extends HttpServlet {
 	  body.append("&numThreads="+ jobDetails.getNumMap());
 	  body.append("&numWorkers="+ activeWorkers.size());
 	  for (int i = 0; i < activeWorkers.size() ; i++){
-		  body.append("&worker"+ i+1 +"="+ activeWorkers.get(i));
+		  int workerNum = i+1;
+		  body.append("&worker"+ workerNum +"="+ activeWorkers.get(i));
 	  }
+	  System.out.println("BODYYYYY: " + body.toString());
 	  return body.toString();  
 	  
   }
@@ -73,7 +75,49 @@ public class MasterServlet extends HttpServlet {
 	  
   }
  
-   public void doPost(HttpServletRequest request, HttpServletResponse response) throws IOException{
+  private boolean getMapStatus(){
+	  boolean done = true;
+	  for (String worker : activeWorkers){
+		  WorkerStatus workerstatus = workerstatusMap.get(worker);
+		  if (workerstatus.getStatus().equalsIgnoreCase("waiting")){
+			  continue;
+		  }
+		  if (workerstatus.getStatus().equalsIgnoreCase("mapping")){
+			  done = false;
+			  break;
+		  }
+	  }
+	  
+	  return done;
+  }
+  
+  private void sendPost(String requestType, String body){
+	  for (String key : activeWorkers){
+		  String ip = key.split(":")[0];
+		  int port = Integer.parseInt(key.split(":")[1]);
+		  try {
+			Socket socket = new Socket(ip, port);
+			OutputStream out = socket.getOutputStream();
+			String workerURL = "http://"+ key+ requestType;
+			String postRequest = "POST " + workerURL + " HTTP/1.0\r\n";
+			String contentType = "Content-Type:  application/x-www-form-urlencoded\r\n";
+			String contentLen = "Content-Length: "+ body.length() + "\r\n\r\n";
+			out.write(postRequest.getBytes());
+			out.write(contentType.getBytes());
+			out.write(contentLen.getBytes());
+			out.write(body.getBytes());
+			out.flush();
+			out.close();
+			socket.close();
+		  } catch (IOException e) {
+			  System.out.println("Error while writing to worker's socket");
+			  e.printStackTrace();
+		  }	  
+	  }
+	  
+  }
+  
+  public void doPost(HttpServletRequest request, HttpServletResponse response) throws IOException{
 	  String html = null;
 	  String pathInfo = request.getPathInfo();
 	  System.out.println(pathInfo);
@@ -89,36 +133,13 @@ public class MasterServlet extends HttpServlet {
 		  }
 		  
 		  html = HtmlPages.runMapPage();
-		  jobs.get(0).setStatus("running");
+		  jobs.get(0).setStatus("mapping");
 		  //Process the first job in queue
 		  String body = getMapBody(jobs.get(0));
-		  for (String key : activeWorkers){
-			  String ip = key.split(":")[0];
-			  int port = Integer.parseInt(key.split(":")[1]);
-			  try {
-				Socket socket = new Socket(ip, port);
-				OutputStream out = socket.getOutputStream();
-				String workerURL = "http://"+ key+"/worker/runmap";
-				String postRequest = "POST " + workerURL + " HTTP/1.0\r\n";
-				String contentType = "Content-Type:  application/x-www-form-urlencoded\r\n";
-				String contentLen = "Content-Length: "+ body.length() + "\r\n\r\n";
-				out.write(postRequest.getBytes());
-				out.write(contentType.getBytes());
-				out.write(contentLen.getBytes());
-				out.write(body.getBytes());
-				out.flush();
-				out.close();
-				socket.close();
-			} catch (IOException e) {
-		
-				e.printStackTrace();
-			}
-			  
-		  }
-		  
+		  sendPost("/worker/runmap", body);		  
 		  //remove job from queue once done
 		  
-	  }
+	  } 
 	  else {
 		  html = "<html>Unkown path</html>";
 	  }
@@ -145,10 +166,19 @@ public class MasterServlet extends HttpServlet {
 		  
 		  //check if any jobs are on the job queue
 		  if (!jobs.isEmpty()){
-			  String jobStatus = jobs.get(0).getStatus();
-			  if (jobStatus.equalsIgnoreCase("waiting")){
+			  JobDetails job = jobs.get(0);
+			  String jobStatus = job.getStatus();
+			  if (jobStatus.equalsIgnoreCase("queued")){
 				  // send a post to master to attend to this job
-				  html = HtmlPages.formRunMapRequest(jobs.remove(0));
+				  html = HtmlPages.formRunMapRequest(job);
+			  } else if (jobStatus.equalsIgnoreCase("mapping")){
+				  if (getMapStatus()){
+					  System.out.println("Going to reduce");
+					  //POST a /runreduce request to workers
+					  String body = getReduceBody(jobs.get(0));
+					  sendPost("/worker/runreduce", body);
+					  job.setStatus("reducing");
+				  }
 			  }
 		  }
 		  if (html == null)

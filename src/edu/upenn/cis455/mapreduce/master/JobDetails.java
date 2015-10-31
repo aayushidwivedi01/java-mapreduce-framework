@@ -9,7 +9,7 @@ public class JobDetails {
 	private String numReduce;
 	private String input;
 	private String output;
-	private String status = "waiting";
+	private String status = "queued";
 	public JobDetails(HttpServletRequest request){
 		this.request = request;
 		parseRequest();

@@ -52,29 +52,24 @@ public class MapContext implements Context{
 		}
 		
 		try {
-			FileWriter fw = new FileWriter(file.getName(), true);
-			BufferedWriter br = new BufferedWriter(fw);
-			String line = key + "\t" + value;
-			br.write(line);
-			br.close();
+			FileWriter fw = new FileWriter(filename, true);
+			String line = key + "\t" + value + "\n";
+			System.out.println("Writing into file " + filename);
+			fw.append(line);
 			fw.close();
 	
 		} catch (IOException e) {
-			
+			System.out.println("Error in writing to file");
 			e.printStackTrace();
 		}
 		
 	}
 	public void write(String key, String value){
 		System.out.println("Chilling in context");
-		
 		BigInteger blockSize = maxSize.divide(BigInteger.valueOf(numWorkers));
-		BigInteger hashedKey =  shaHash(key).divide(blockSize);
-		
-		System.out.println("Hashed key :" + hashedKey);
-		
-		String filename = spoolOut +"/worker"+ hashedKey+1 ;
-		
+		BigInteger hashedKey =  shaHash(key).divide(blockSize);		
+		int workerNum = hashedKey.intValue() + 1;
+		String filename = spoolOut +"/worker" + workerNum;
 		writeToFile(filename, key, value);
 	
 		

@@ -12,11 +12,13 @@ public class Mapper extends Thread {
 	private Job job;
 	private LinkedList<String> queue;
 	private int numWorkers;
+	private String spoolOut;
 
-	public Mapper(WordCount job, LinkedList<String> queue, int numWorkers) {
+	public Mapper(WordCount job, LinkedList<String> queue, int numWorkers, String spoolOut) {
 		this.job = job;
 		this.queue = queue;
 		this.numWorkers = numWorkers;
+		this.spoolOut = spoolOut;
 	}
 
 	public void run() {
@@ -45,7 +47,6 @@ public class Mapper extends Thread {
 					String line = queue.remove(0);
 					String key = line.split("\t")[0];
 					String value = line.split("\t")[1];
-					String spoolOut = (new WorkerServlet()).getSpoolOut();
 					MapContext context = new MapContext(numWorkers, spoolOut);
 					job.map(key,  value,  context);
 
