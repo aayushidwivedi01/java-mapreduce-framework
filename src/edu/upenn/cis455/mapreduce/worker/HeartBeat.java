@@ -24,7 +24,7 @@ public class HeartBeat extends Thread{
 	}
 	
 	private String getIP(){
-		System.out.println(masterIpPort);
+		//System.out.println(masterIpPort);
 		String ip =  masterIpPort.split(":")[0];
 		return ip;
 	}
@@ -69,7 +69,7 @@ public class HeartBeat extends Thread{
 				System.out.println("HeartBeat thread interrrupted");
 				e.printStackTrace();
 			} catch (IOException e){
-				System.out.println("Error opening client socket");
+				//System.out.println("Error opening client socket");
 				
 			}
 		}

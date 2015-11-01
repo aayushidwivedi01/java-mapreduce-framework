@@ -20,7 +20,7 @@
   </target>
   
   <target name="compile-worker" depends="init">
-    <javac srcdir="src" destdir="target/worker/WEB-INF/classes" includes="**/worker/*.java" deprecation="on"
+    <javac srcdir="src" destdir="target/worker/WEB-INF/classes" includes="**/worker/*.java,**/job/*.java" deprecation="on"
      debug="true" includeantruntime="false" classpath="lib/servlet-api.jar">
        <compilerarg value="-Xlint"/>
     </javac>

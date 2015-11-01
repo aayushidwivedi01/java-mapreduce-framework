@@ -16,6 +16,7 @@ import edu.upenn.cis455.mapreduce.job.WordCount;
 public class WorkerServlet extends HttpServlet {
 	private static HashMap<String, String> statusMap;
 	private int numWorkers;
+	private String output;
 	static final long serialVersionUID = 455555002;
 	private Mapper[] mapper;
 	private Reducer[] reducer;
@@ -50,45 +51,79 @@ public class WorkerServlet extends HttpServlet {
 	public String getSpoolIn() {
 		return spoolIn;
 	}
-
+	
+	public LinkedList<String> getQueue(){
+		return queue;
+	}
+	
+	public int getNumWorkers(){
+		return numWorkers;
+	}
+	
+	public String getOutputDIR(){
+		return output;
+	}
+	
+	public LinkedList<String> getReduceData(){
+		return reduceData;
+	}
+	
 	public static HashMap<String, String> getStatusMap() {
 		return statusMap;
 	}
 
 	public void updateStatus(String status) {
-		statusMap.put("status", status);
+		synchronized(statusMap){
+			statusMap.put("status", status);
+		}
+		
+	}
+	
+	public void updateKeysRead(){
+		synchronized(statusMap){
+			int value = Integer.valueOf(statusMap.get("keysRead")) + 1;
+			statusMap.put("keysRead", String.valueOf(value));
+		}
+	}
+
+	public void updateKeysWritten(){
+		synchronized(statusMap){
+			int value = Integer.valueOf(statusMap.get("keysWritten")) + 1;
+			statusMap.put("keysWritten", String.valueOf(value));
+		}
 	}
 
 	public void updateJob(String job) {
-		statusMap.put("job", job);
+		synchronized(statusMap){
+			statusMap.put("job", job);
+		}
+		
 	}
 
-	public static boolean getStop() {
+	public boolean getStop() {
 		return stop;
 	}
 
-	public void generateMappers(int size, WordCount job,
-			LinkedList<String> queue, int numWorkers) {
+	public void generateMappers(int size, Job job) {
 		mapper = new Mapper[size];
 		for (int i = 0; i < size; i++) {
-			mapper[i] = new Mapper(job, queue, numWorkers, spoolOut);
+			mapper[i] = new Mapper(job, this);
 			mapper[i].setName("Mapper" + i);
 			mapper[i].start();
 		}
 	}
 	
-	public void generateReducers(int size , WordCount job, String output){
+	public void generateReducers(int size , Job job){
 		reducer = new Reducer[size];
 		
 		for (int i = 0; i < size; i++){
-			reducer[i] = new Reducer(job, reduceData, output);
+			reducer[i] = new Reducer(job, this);
 			reducer[i].setName("Reducer" + i);
 			reducer[i].start();
 		}
 	}
 
 	public void readFiles(String name) {
-		System.out.println("Dir name: " + name);
 		File dir = new File(name);
 		File[] files = dir.listFiles();
 		BufferedReader br;
@@ -101,7 +136,6 @@ public class WorkerServlet extends HttpServlet {
 						synchronized (queue) {
 							queue.add(line);
 							queue.notify();
-							System.out.println("Queue: " + queue.toString());
 						}
 
 					}
@@ -135,10 +169,8 @@ public class WorkerServlet extends HttpServlet {
 					break;
 				} else if (th.getState() == State.WAITING) {
 					count++;
-					System.out.println("Count: " + count);
 					if (count == numWorkers) {
 						waiting = true;
-						System.out.println("Done waiting:" + count);
 						break;
 					}
 
@@ -167,10 +199,9 @@ public class WorkerServlet extends HttpServlet {
 					break;
 				} else if (th.getState() == State.WAITING) {
 					count++;
-					System.out.println("Count: " + count);
 					if (count == numWorkers) {
+						
 						waiting = true;
-						System.out.println("Done waiting:" + count);
 						break;
 					}
 
@@ -183,7 +214,6 @@ public class WorkerServlet extends HttpServlet {
 		File dir = new File(name);
 
 		if (dir.exists()) {
-			System.out.println("Deleting dir: " + name);
 			File[] files = dir.listFiles();
 			for (File file : files)
 				file.delete();
@@ -230,7 +260,6 @@ public class WorkerServlet extends HttpServlet {
 		for (File file : files){
 			
 			String filename = file.getName();
-			System.out.println("Files :" + filename);
 			if (allWorkers.containsKey(filename)){
 				String ipPort = allWorkers.get(filename);
 				try{
@@ -286,7 +315,6 @@ public class WorkerServlet extends HttpServlet {
 				 else {
 					 synchronized(reduceData){
 						 reduceData.add(sortedContent.toString());
-						 System.out.println("Notifying");
 						 reduceData.notify();
 					 }
 					 
@@ -296,9 +324,6 @@ public class WorkerServlet extends HttpServlet {
 				 }
 				 
 				 
-			 }
-			 synchronized(reduceData){
-				 System.out.println("Reduced data: " + reduceData.toString());
 			 }
 			 p.waitFor();
 			 p.destroy();
@@ -328,7 +353,6 @@ public class WorkerServlet extends HttpServlet {
 			allWorkers = new HashMap<>();
 			for (int i = 1; i <= numWorkers; i++) {
 				String key = "worker" + i;
-				System.out.println("Worker IP: " + request.getParameter(key));
 				allWorkers.put(key, request.getParameter(key));
 			}
 
@@ -339,7 +363,7 @@ public class WorkerServlet extends HttpServlet {
 
 			try {
 				Class<?> mapClass = Class.forName(mapJob);
-				WordCount job = (WordCount) mapClass.newInstance();
+				Job job = (Job) mapClass.newInstance();
 				queue = new LinkedList<>();
 				spoolOut = getServletConfig().getInitParameter("storagedir")
 						+ "spoolOut";
@@ -357,18 +381,16 @@ public class WorkerServlet extends HttpServlet {
 				updateStatus("mapping");
 
 				
-				generateMappers(numThreads, job, queue, numWorkers);
+				generateMappers(numThreads, job);
 
 				// read all files in input directory
 				readFiles(input);
 
-				checkMapperStatus(numWorkers);
+				checkMapperStatus(numThreads);
 				stop = true;
 
 				for (Thread th : mapper) {
 					if (th.getState() == State.WAITING) {
-						System.out.println("Going to interrupt: "
-								+ th.getName());
 						th.interrupt();
 					}
 
@@ -405,7 +427,7 @@ public class WorkerServlet extends HttpServlet {
 		} else if (pathInfo.equals("/runreduce")) {
 			String reduceJob = request.getParameter("job");
 			int numThreads = Integer.valueOf(request.getParameter("numThreads"));
-			String output = request.getParameter("output");
+			output = request.getParameter("output");
 			
 			output = getServletConfig().getInitParameter("storagedir")
 					+ output;
@@ -415,21 +437,18 @@ public class WorkerServlet extends HttpServlet {
 			
 			try{
 				Class<?> mapClass = Class.forName(reduceJob);
-				WordCount job = (WordCount) mapClass.newInstance();
-				System.out.println("running reduce");
+				Job job = (Job) mapClass.newInstance();
 				stop = false;
-				generateReducers(numThreads, job, output);
+				generateReducers(numThreads, job);
 				
 				sortMapOutput();
 				
-				checkReducerStatus(numWorkers);
+				checkReducerStatus(numThreads);
 				stop = true;
 				
 
 				for (Thread th : reducer) {
 					if (th.getState() == State.WAITING) {
-						System.out.println("Going to interrupt: "
-								+ th.getName());
 						th.interrupt();
 					}
 
@@ -480,7 +499,6 @@ public class WorkerServlet extends HttpServlet {
 				fw.flush();
 				fw.close();
 				br.close();
-				System.out.println("File written to spoolIn : " + filename);
 			} catch (IOException e) {
 				System.out.println("Error while reading the post body");
 				e.printStackTrace();

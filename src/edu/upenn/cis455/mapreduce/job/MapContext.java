@@ -1,6 +1,5 @@
 package edu.upenn.cis455.mapreduce.job;
 
-import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
@@ -8,7 +7,6 @@ import java.io.UnsupportedEncodingException;
 import java.math.BigInteger;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
-import java.util.ArrayList;
 
 import edu.upenn.cis455.mapreduce.Context;
 
@@ -55,7 +53,6 @@ public class MapContext implements Context{
 			FileWriter fw = new FileWriter(filename, true);
 			String[] words = value.split(" ");
 			String line ;
-			System.out.println("Writing into file " + filename);
 			for (String word : words){
 				line = word + "\t" + "1\n";
 				fw.append(line);
@@ -70,7 +67,6 @@ public class MapContext implements Context{
 		
 	}
 	public void write(String key, String value){
-		System.out.println("Chilling in context");
 		BigInteger blockSize = maxSize.divide(BigInteger.valueOf(numWorkers));
 		BigInteger hashedKey =  shaHash(key).divide(blockSize);		
 		int workerNum = hashedKey.intValue() + 1;

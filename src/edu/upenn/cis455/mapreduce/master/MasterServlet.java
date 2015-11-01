@@ -41,7 +41,7 @@ public class MasterServlet extends HttpServlet {
 	  boolean flag = true;
 	  for (String worker : activeWorkers){
 		  WorkerStatus ws = workerstatusMap.get(worker);
-		  System.out.println("Worker status: " + ws.getStatus());
+		 // System.out.println("Worker status: " + ws.getStatus());
 		  if ( !ws.getStatus().equals("idle")){
 			  flag = false;
 			  break;
@@ -61,7 +61,6 @@ public class MasterServlet extends HttpServlet {
 		  int workerNum = i+1;
 		  body.append("&worker"+ workerNum +"="+ activeWorkers.get(i));
 	  }
-	  System.out.println("BODYYYYY: " + body.toString());
 	  return body.toString();  
 	  
   }
@@ -141,13 +140,16 @@ public class MasterServlet extends HttpServlet {
 	  if (pathInfo.equals("/status/newjob")){
 		  //check if any job is running
 		  JobDetails job= new JobDetails(request);
+		  System.out.println("Queueing new job");
 		  jobs.add(job);
-		  if (!canAllocateJob()){
-			  //TO-DO: queue the job
-			  
-			  html = HtmlPages.busyWorkersPage();
-		  }
-		  
+//		  if (!canAllocateJob()){
+//			  //TO-DO: queue the job
+//			  
+//			//  html = HtmlPages.busyWorkersPage();
+//			  
+//		  }
+//		  
+		  System.out.println("Maping...");
 		  html = HtmlPages.runMapPage();
 		  jobs.get(0).setStatus("mapping");
 		  //Process the first job in queue
@@ -174,7 +176,6 @@ public class MasterServlet extends HttpServlet {
 	  String pathInfo = request.getPathInfo();
 	  System.out.println(pathInfo);
 	  if (pathInfo.equals("/workerstatus")){
-		  
 		  long timestamp = new Date().getTime();
 		  WorkerStatus ws = new WorkerStatus(request, timestamp);
 		  workerstatusMap.put(ws.getIpPort(), ws);	
@@ -184,19 +185,10 @@ public class MasterServlet extends HttpServlet {
 		  if (!jobs.isEmpty()){
 			  JobDetails job = jobs.get(0);
 			  String jobStatus = job.getStatus();
-			  if (jobStatus.equalsIgnoreCase("queued")){
-				  // send a post to master to attend to this job
-				  System.out.println("queued job");
-				  html = HtmlPages.formRunMapRequest(job);
-				  response.setContentType("text/html");
-			      response.setContentLength(html.length());
-
-			      PrintWriter out = response.getWriter();
-			      out.write(html);
-			      response.flushBuffer();
-			  } else if (jobStatus.equalsIgnoreCase("mapping")){
+			 
+			  if (jobStatus.equalsIgnoreCase("mapping")){
 				  if (getMapStatus()){
-					  System.out.println("Going to reduce");
+					  System.out.println("Reducing...");
 					  //POST a /runreduce request to workers
 					  String body = getReduceBody(jobs.get(0));
 					  sendPost("/worker/runreduce", body);
@@ -205,11 +197,13 @@ public class MasterServlet extends HttpServlet {
 			  } else if (jobStatus.equals("reducing")){
 				  if (getReduceStatus()){
 					  System.out.println("Job has been completed");
-					  //POST a /runreduce request to workers
 					  jobs.remove(0);
 					  if (!jobs.isEmpty()){
-						  System.out.println("Send new job");
-						  html = HtmlPages.formRunMapRequest(jobs.get(0));
+						  System.out.println("Dequeing job");
+						  System.out.println("Maping...");
+						  jobs.get(0).setStatus("mapping");
+						  String body = getMapBody(jobs.get(0));
+						  sendPost("/worker/runmap", body);		
 					  }
 				  }
 			  }

@@ -16,7 +16,6 @@ public class ReduceContext implements Context{
 	public void write(String key, String value) {
 		String filename = outputDIR + "/output.txt";
 		File file = new File (filename);
-		System.out.println("OUTPUT FILENAME :" + filename);
 		if (!file.exists()){
 			try {
 				file.createNewFile();

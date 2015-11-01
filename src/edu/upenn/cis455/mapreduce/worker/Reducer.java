@@ -2,18 +2,20 @@ package edu.upenn.cis455.mapreduce.worker;
 
 import java.util.LinkedList;
 
+import edu.upenn.cis455.mapreduce.Job;
 import edu.upenn.cis455.mapreduce.job.ReduceContext;
 import edu.upenn.cis455.mapreduce.job.WordCount;
 
 public class Reducer extends Thread{
-	private WordCount job;
+	private Job job;
 	private LinkedList<String> data;
 	private String outputDIR;
-	
-	public Reducer(WordCount job, LinkedList<String> data, String outputDIR){
+	private WorkerServlet workerServlet;
+	public Reducer(Job job, WorkerServlet ws){
+		this.workerServlet = ws;
 		this.job = job;
-		this.data = data;
-		this.outputDIR = outputDIR;
+		this.data = ws.getReduceData();
+		this.outputDIR = ws.getOutputDIR();
 	}
 	
 	public void run(){
@@ -26,15 +28,14 @@ public class Reducer extends Thread{
 						data.wait();						
 					}
 					catch (InterruptedException e) {
-						System.out.println("Thread interrupted while waiting" + WorkerServlet.getStop());
-						if (WorkerServlet.getStop()){
+						if (workerServlet.getStop()){
 							break;
 						}
 					}
 				}
 				
 				else{
-					
+					workerServlet.updateKeysWritten();
 					String allLines = data.remove(0);
 					
 					String[] lines = allLines.split("\n");
@@ -43,7 +44,6 @@ public class Reducer extends Thread{
 					for (int i = 0 ; i < lines.length ; i++){
 						values[i] = lines[i].split("\t")[1];
 					}
-					System.out.println("calling reducer");
 					ReduceContext context = new ReduceContext(outputDIR);
 				
 					job.reduce(key, values, context);

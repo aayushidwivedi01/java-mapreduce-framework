@@ -12,27 +12,24 @@ public class Mapper extends Thread {
 	private LinkedList<String> queue;
 	private int numWorkers;
 	private String spoolOut;
+	private WorkerServlet workerServlet;
 
-	public Mapper(WordCount job, LinkedList<String> queue, int numWorkers, String spoolOut) {
+	public Mapper(Job job, WorkerServlet ws) {
+		this.workerServlet = ws;
 		this.job = job;
-		this.queue = queue;
-		this.numWorkers = numWorkers;
-		this.spoolOut = spoolOut;
+		this.queue = ws.getQueue();
+		this.numWorkers = ws.getNumWorkers();
+		this.spoolOut = ws.getSpoolOut();
 	}
 
-	public void run() {
-
-		System.out.println("Started " + Thread.currentThread().getName());
-		
+	public void run() {		
 		while (true) {
 			synchronized (queue) {
 				if (queue.isEmpty()) {
 					try {
 						queue.wait();
-
 					} catch (InterruptedException e) {
-						System.out.println("Thread interrupted while waiting" + WorkerServlet.getStop());
-						if (WorkerServlet.getStop()){
+						if (workerServlet.getStop()){
 							break;
 						}
 
@@ -41,6 +38,7 @@ public class Mapper extends Thread {
 				}
  
 				else {
+					workerServlet.updateKeysRead();
 					String line = queue.remove(0);
 					String key = line.split("\t")[0];
 					String value = line.split("\t")[1];
