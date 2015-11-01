@@ -15,6 +15,7 @@ import edu.upenn.cis455.mapreduce.job.WordCount;
 
 public class WorkerServlet extends HttpServlet {
 	private static HashMap<String, String> statusMap;
+	private int numWorkers;
 	static final long serialVersionUID = 455555002;
 	private Mapper[] mapper;
 	private Reducer[] reducer;
@@ -23,6 +24,7 @@ public class WorkerServlet extends HttpServlet {
 	private String spoolOut;
 	private String spoolIn;
 	private HashMap<String, String> allWorkers;
+	private LinkedList<String> reduceData = new LinkedList<>();
 
 	public void init() {
 		statusMap = new HashMap<>();
@@ -75,11 +77,11 @@ public class WorkerServlet extends HttpServlet {
 		}
 	}
 	
-	public void generateReducers(int size , WordCount job){
+	public void generateReducers(int size , WordCount job, String output){
 		reducer = new Reducer[size];
 		
 		for (int i = 0; i < size; i++){
-			reducer[i] = new Reducer(job);
+			reducer[i] = new Reducer(job, reduceData, output);
 			reducer[i].setName("Reducer" + i);
 			reducer[i].start();
 		}
@@ -146,14 +148,49 @@ public class WorkerServlet extends HttpServlet {
 
 	}
 
-	public void createDir(String name) {
-		File file = new File(name);
+	private void checkReducerStatus(int numWorkers){
+		boolean waiting = false;
+		int count = 0;
+		while (true) {
+			synchronized (reduceData) {
+				if (reduceData.isEmpty()) {
+					break;
+				}
 
-		if (file.isDirectory() && file.exists()) {
-			file.delete();
+			}
 		}
 
-		file.mkdir();
+		while (!waiting) {
+			count = 0;
+			for (Thread th : reducer) {
+				if (th.getState() == State.RUNNABLE) {
+					break;
+				} else if (th.getState() == State.WAITING) {
+					count++;
+					System.out.println("Count: " + count);
+					if (count == numWorkers) {
+						waiting = true;
+						System.out.println("Done waiting:" + count);
+						break;
+					}
+
+				}
+			}
+		}
+		
+	}
+	public void createDir(String name) {
+		File dir = new File(name);
+
+		if (dir.exists()) {
+			System.out.println("Deleting dir: " + name);
+			File[] files = dir.listFiles();
+			for (File file : files)
+				file.delete();
+			dir.delete();
+		}
+
+		dir.mkdir();
 	}
 
 	public HashMap<String, String> getAllWorkers() {
@@ -211,7 +248,7 @@ public class WorkerServlet extends HttpServlet {
 		}
 	}
 	
-	private String sortMapOutput(){
+	private void sortMapOutput(){
 		StringBuilder sortedContent = null;
 		String sortScript = spoolIn + "/sort.sh";
 		File file = new File(sortScript);
@@ -239,12 +276,30 @@ public class WorkerServlet extends HttpServlet {
 			 BufferedReader br = new BufferedReader(
 		                new InputStreamReader(p.getInputStream()));
 			 sortedContent = new StringBuilder();
+			 String prevLine = br.readLine();
+			 sortedContent.append(prevLine +"\n");
 			 String line;
 			 while ((line = br.readLine()) != null){
-				 sortedContent.append(line + "\n");
+				 if (line.equals(prevLine)){
+					 sortedContent.append(line + "\n");
+				 }
+				 else {
+					 synchronized(reduceData){
+						 reduceData.add(sortedContent.toString());
+						 System.out.println("Notifying");
+						 reduceData.notify();
+					 }
+					 
+					 prevLine = line;
+					 sortedContent = new StringBuilder();
+					 sortedContent.append(prevLine +"\n");
+				 }
+				 
+				 
 			 }
-			 
-			 System.out.println(sortedContent);
+			 synchronized(reduceData){
+				 System.out.println("Reduced data: " + reduceData.toString());
+			 }
 			 p.waitFor();
 			 p.destroy();
 		} catch (IOException e) {
@@ -255,7 +310,6 @@ public class WorkerServlet extends HttpServlet {
 			e.printStackTrace();
 		}
 		
-		return sortedContent.toString();
 	}
 	
 	public void doPost(HttpServletRequest request, HttpServletResponse response) {
@@ -269,7 +323,7 @@ public class WorkerServlet extends HttpServlet {
 			String input = request.getParameter("input");
 			int numThreads = Integer.parseInt(request
 					.getParameter("numThreads"));
-			int numWorkers = Integer.parseInt(request
+			numWorkers = Integer.parseInt(request
 					.getParameter("numWorkers"));
 			allWorkers = new HashMap<>();
 			for (int i = 1; i <= numWorkers; i++) {
@@ -281,7 +335,7 @@ public class WorkerServlet extends HttpServlet {
 			// get input directory
 			input = getServletConfig().getInitParameter("storagedir") + "/"
 					+ input;
-			System.out.println("Input Dir:" + input);
+		
 
 			try {
 				Class<?> mapClass = Class.forName(mapJob);
@@ -294,6 +348,7 @@ public class WorkerServlet extends HttpServlet {
 						+ "spoolIn";
 
 				createDir(spoolOut);
+				
 				createDir(spoolIn);
 
 				// update job
@@ -351,25 +406,46 @@ public class WorkerServlet extends HttpServlet {
 			String reduceJob = request.getParameter("job");
 			int numThreads = Integer.valueOf(request.getParameter("numThreads"));
 			String output = request.getParameter("output");
-
-			output = getServletContext().getInitParameter("storagedir")
+			
+			output = getServletConfig().getInitParameter("storagedir")
 					+ output;
 			
 			updateStatus("reducing");
-			
 			createDir(output);
 			
 			try{
 				Class<?> mapClass = Class.forName(reduceJob);
 				WordCount job = (WordCount) mapClass.newInstance();
 				System.out.println("running reduce");
-				String sortedContent = sortMapOutput();
+				stop = false;
+				generateReducers(numThreads, job, output);
 				
-				if (sortedContent == null){
-					//TODO
+				sortMapOutput();
+				
+				checkReducerStatus(numWorkers);
+				stop = true;
+				
+
+				for (Thread th : reducer) {
+					if (th.getState() == State.WAITING) {
+						System.out.println("Going to interrupt: "
+								+ th.getName());
+						th.interrupt();
+					}
+
+				}
+				for (Thread th : reducer) {
+					try {
+						th.join();
+						System.out.println("Thread joining " + th.getName());
+					} catch (InterruptedException e) {
+						System.out.println("Error while joining mapper thread");
+						e.printStackTrace();
+					}
 				}
 				
-				generateReducers(numThreads, job);
+				
+				updateStatus("idle");
 				
 				
 			} catch( ClassNotFoundException e){

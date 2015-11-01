@@ -91,6 +91,22 @@ public class MasterServlet extends HttpServlet {
 	  return done;
   }
   
+  private boolean getReduceStatus(){
+	  boolean done = true;
+	  for (String worker : activeWorkers){
+		  WorkerStatus workerstatus = workerstatusMap.get(worker);
+		  if (workerstatus.getStatus().equalsIgnoreCase("idle")){
+			  continue;
+		  }
+		  if (workerstatus.getStatus().equalsIgnoreCase("reducing")){
+			  done = false;
+			  break;
+		  }
+	  }
+	  
+	  return done;
+  }
+  
   private void sendPost(String requestType, String body){
 	  for (String key : activeWorkers){
 		  String ip = key.split(":")[0];
@@ -170,7 +186,14 @@ public class MasterServlet extends HttpServlet {
 			  String jobStatus = job.getStatus();
 			  if (jobStatus.equalsIgnoreCase("queued")){
 				  // send a post to master to attend to this job
+				  System.out.println("queued job");
 				  html = HtmlPages.formRunMapRequest(job);
+				  response.setContentType("text/html");
+			      response.setContentLength(html.length());
+
+			      PrintWriter out = response.getWriter();
+			      out.write(html);
+			      response.flushBuffer();
 			  } else if (jobStatus.equalsIgnoreCase("mapping")){
 				  if (getMapStatus()){
 					  System.out.println("Going to reduce");
@@ -179,7 +202,19 @@ public class MasterServlet extends HttpServlet {
 					  sendPost("/worker/runreduce", body);
 					  job.setStatus("reducing");
 				  }
+			  } else if (jobStatus.equals("reducing")){
+				  if (getReduceStatus()){
+					  System.out.println("Job has been completed");
+					  //POST a /runreduce request to workers
+					  jobs.remove(0);
+					  if (!jobs.isEmpty()){
+						  System.out.println("Send new job");
+						  html = HtmlPages.formRunMapRequest(jobs.get(0));
+					  }
+				  }
 			  }
+		  } else {
+			  System.out.println("No jobs on queue");
 		  }
 		  if (html == null)
 			  html = "<html> Done </html>";

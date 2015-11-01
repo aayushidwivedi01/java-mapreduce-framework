@@ -26,10 +26,8 @@ public class Mapper extends Thread {
 		
 		while (true) {
 			synchronized (queue) {
-				System.out.println(queue);
 				if (queue.isEmpty()) {
 					try {
-						System.out.println("Waiting");
 						queue.wait();
 
 					} catch (InterruptedException e) {
@@ -51,7 +49,7 @@ public class Mapper extends Thread {
 
 				}
 			}
-			System.out.println("mapper : inside while");
+	
 		}
 
 	}
