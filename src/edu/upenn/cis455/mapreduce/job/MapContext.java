@@ -53,9 +53,14 @@ public class MapContext implements Context{
 		
 		try {
 			FileWriter fw = new FileWriter(filename, true);
-			String line = key + "\t" + value + "\n";
+			String[] words = value.split(" ");
+			String line ;
 			System.out.println("Writing into file " + filename);
-			fw.append(line);
+			for (String word : words){
+				line = word + "\t" + "1\n";
+				fw.append(line);
+
+			}
 			fw.close();
 	
 		} catch (IOException e) {

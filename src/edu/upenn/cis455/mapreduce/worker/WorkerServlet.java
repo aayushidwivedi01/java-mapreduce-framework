@@ -12,12 +12,12 @@ import javax.servlet.http.*;
 
 import edu.upenn.cis455.mapreduce.Job;
 import edu.upenn.cis455.mapreduce.job.WordCount;
-import edu.upenn.cis455.mapreduce.master.Mapper;
 
 public class WorkerServlet extends HttpServlet {
 	private static HashMap<String, String> statusMap;
 	static final long serialVersionUID = 455555002;
 	private Mapper[] mapper;
+	private Reducer[] reducer;
 	private LinkedList<String> queue = new LinkedList<>();
 	private static boolean stop = false;
 	private String spoolOut;
@@ -75,8 +75,14 @@ public class WorkerServlet extends HttpServlet {
 		}
 	}
 	
-	public void generateReducers(){
+	public void generateReducers(int size , WordCount job){
+		reducer = new Reducer[size];
 		
+		for (int i = 0; i < size; i++){
+			reducer[i] = new Reducer(job);
+			reducer[i].setName("Reducer" + i);
+			reducer[i].start();
+		}
 	}
 
 	public void readFiles(String name) {
@@ -140,7 +146,7 @@ public class WorkerServlet extends HttpServlet {
 
 	}
 
-	public void createSpools(String name) {
+	public void createDir(String name) {
 		File file = new File(name);
 
 		if (file.isDirectory() && file.exists()) {
@@ -204,6 +210,54 @@ public class WorkerServlet extends HttpServlet {
 			}
 		}
 	}
+	
+	private String sortMapOutput(){
+		StringBuilder sortedContent = null;
+		String sortScript = spoolIn + "/sort.sh";
+		File file = new File(sortScript);
+		
+		if (!file.exists()){
+			try {
+				file.createNewFile();
+				String script = "sort -k 1 -t \\t " + spoolIn + "/*.txt"
+						+ " | sort -m";
+				
+				FileWriter fw = new FileWriter(file);
+				fw.write(script);
+				fw.flush();
+				fw.close();
+			} catch (IOException e) {
+				System.out.println("Error while creating sort file");
+				e.printStackTrace();
+			}
+			
+		}
+		
+		try {
+			file.setExecutable(true);
+			Process p = Runtime.getRuntime().exec(sortScript);
+			 BufferedReader br = new BufferedReader(
+		                new InputStreamReader(p.getInputStream()));
+			 sortedContent = new StringBuilder();
+			 String line;
+			 while ((line = br.readLine()) != null){
+				 sortedContent.append(line + "\n");
+			 }
+			 
+			 System.out.println(sortedContent);
+			 p.waitFor();
+			 p.destroy();
+		} catch (IOException e) {
+			System.out.println("Error while executing sort.sh");
+			e.printStackTrace();
+		} catch (InterruptedException e) {
+			System.out.println("Sort process interrupted");
+			e.printStackTrace();
+		}
+		
+		return sortedContent.toString();
+	}
+	
 	public void doPost(HttpServletRequest request, HttpServletResponse response) {
 		String html = null;
 		String pathInfo = request.getPathInfo();
@@ -239,8 +293,8 @@ public class WorkerServlet extends HttpServlet {
 				spoolIn = getServletConfig().getInitParameter("storagedir")
 						+ "spoolIn";
 
-				createSpools(spoolOut);
-				createSpools(spoolIn);
+				createDir(spoolOut);
+				createDir(spoolIn);
 
 				// update job
 				updateJob(mapJob);
@@ -294,12 +348,39 @@ public class WorkerServlet extends HttpServlet {
 
 			
 		} else if (pathInfo.equals("/runreduce")) {
-			String job = request.getParameter("job");
-			String numThreads = request.getParameter("numThreads");
+			String reduceJob = request.getParameter("job");
+			int numThreads = Integer.valueOf(request.getParameter("numThreads"));
 			String output = request.getParameter("output");
 
-			output = getServletContext().getInitParameter("storagedir") + "/"
+			output = getServletContext().getInitParameter("storagedir")
 					+ output;
+			
+			updateStatus("reducing");
+			
+			createDir(output);
+			
+			try{
+				Class<?> mapClass = Class.forName(reduceJob);
+				WordCount job = (WordCount) mapClass.newInstance();
+				System.out.println("running reduce");
+				String sortedContent = sortMapOutput();
+				
+				if (sortedContent == null){
+					//TODO
+				}
+				
+				generateReducers(numThreads, job);
+				
+				
+			} catch( ClassNotFoundException e){
+				System.out.println("Class not found");
+			} catch (IllegalAccessException e){
+				System.out.println("Illegal access");
+
+			} catch (InstantiationException e){
+				System.out.println("Error while instantiating class");
+			}
+			
 			
 			
 		} else if (pathInfo.equals("/pushdata")){

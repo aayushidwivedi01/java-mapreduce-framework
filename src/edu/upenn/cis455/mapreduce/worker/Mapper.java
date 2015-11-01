@@ -1,4 +1,4 @@
- package edu.upenn.cis455.mapreduce.master;
+ package edu.upenn.cis455.mapreduce.worker;
 
 import java.util.LinkedList;
 
@@ -6,7 +6,6 @@ import edu.upenn.cis455.mapreduce.Context;
 import edu.upenn.cis455.mapreduce.Job;
 import edu.upenn.cis455.mapreduce.job.MapContext;
 import edu.upenn.cis455.mapreduce.job.WordCount;
-import edu.upenn.cis455.mapreduce.worker.WorkerServlet;
 
 public class Mapper extends Thread {
 	private Job job;
