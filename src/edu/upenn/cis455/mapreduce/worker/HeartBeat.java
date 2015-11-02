@@ -11,11 +11,12 @@ import java.util.HashMap;
 public class HeartBeat extends Thread{
 	private String masterIpPort;
 	private String workerPort;
-	
+	private WorkerServlet workerServlet;
 
-	public HeartBeat(String ipPort, String workerPort){
+	public HeartBeat(String ipPort, String workerPort, WorkerServlet workerServlet){
 		this.masterIpPort = ipPort;
 		this.workerPort = workerPort;
+		this.workerServlet = workerServlet;
 	}
 	
 	private int  getPort(){
@@ -50,7 +51,7 @@ public class HeartBeat extends Thread{
 			try {
 				
 				//build the request
-				HashMap<String, String>statusMap = WorkerServlet.getStatusMap();
+				HashMap<String, String>statusMap = workerServlet.getStatusMap();
 				String query = buildStatusQuery(statusMap);
 				String request = getRequest(query);
 				

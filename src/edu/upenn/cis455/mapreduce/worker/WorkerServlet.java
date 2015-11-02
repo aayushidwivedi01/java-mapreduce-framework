@@ -3,18 +3,17 @@ package edu.upenn.cis455.mapreduce.worker;
 import java.io.*;
 import java.lang.Thread.State;
 import java.net.Socket;
-import java.nio.file.Files;
 import java.util.HashMap;
 import java.util.LinkedList;
 
-import javax.servlet.*;
-import javax.servlet.http.*;
+import javax.servlet.http.HttpServlet;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
 
 import edu.upenn.cis455.mapreduce.Job;
-import edu.upenn.cis455.mapreduce.job.WordCount;
 
 public class WorkerServlet extends HttpServlet {
-	private static HashMap<String, String> statusMap;
+	private HashMap<String, String> statusMap;
 	private HeartBeat heartBeat;
 	private int numWorkers;
 	private String output;
@@ -35,7 +34,7 @@ public class WorkerServlet extends HttpServlet {
 		statusMapInit();
 		String masterPort = getServletConfig().getInitParameter("master");
 		String workerPort = getServletConfig().getInitParameter("worker");
-		heartBeat = new HeartBeat(masterPort, workerPort);
+		heartBeat = new HeartBeat(masterPort, workerPort, this);
 		heartBeat.start();
 		
 	}
@@ -73,7 +72,7 @@ public class WorkerServlet extends HttpServlet {
 		return reduceData;
 	}
 	
-	public static HashMap<String, String> getStatusMap() {
+	public HashMap<String, String> getStatusMap() {
 		return statusMap;
 	}
 

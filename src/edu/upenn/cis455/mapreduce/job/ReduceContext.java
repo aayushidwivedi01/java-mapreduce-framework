@@ -3,18 +3,25 @@ package edu.upenn.cis455.mapreduce.job;
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.util.HashMap;
 
 import edu.upenn.cis455.mapreduce.Context;
-import edu.upenn.cis455.mapreduce.worker.WorkerServlet;
 
 public class ReduceContext implements Context{
 	private String outputDIR;
-	private WorkerServlet workerServlet;
-	public ReduceContext(String outputDIR, WorkerServlet ws){
+	private HashMap<String, String> statusMap;
+	
+	public ReduceContext(String outputDIR, HashMap<String, String> statusMap){
 		this.outputDIR = outputDIR;
-		this.workerServlet = ws;
+		this.statusMap = statusMap;
 	}
 	
+	public void updateKeysWritten(){
+		synchronized(statusMap){
+			int value = Integer.valueOf(statusMap.get("keysWritten")) + 1;
+			statusMap.put("keysWritten", String.valueOf(value));
+		}
+	}
 	@Override
 	public void write(String key, String value) {
 		String filename = outputDIR + "/output.txt";
@@ -33,7 +40,7 @@ public class ReduceContext implements Context{
 			fw.append(key + "\t" + value + "\n");
 			fw.flush();
 			fw.close();
-			workerServlet.updateKeysWritten();
+			updateKeysWritten();
 		} catch (IOException e) {
 			System.out.println("Error while writing to output file");
 			e.printStackTrace();

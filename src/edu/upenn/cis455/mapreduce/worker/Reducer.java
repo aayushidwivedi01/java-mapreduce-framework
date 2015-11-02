@@ -42,7 +42,7 @@ public class Reducer extends Thread{
 					for (int i = 0 ; i < lines.length ; i++){
 						values[i] = lines[i].split("\t")[1];
 					}
-					ReduceContext context = new ReduceContext(outputDIR, workerServlet);
+					ReduceContext context = new ReduceContext(outputDIR, workerServlet.getStatusMap());
 				
 					job.reduce(key, values, context);
 				}

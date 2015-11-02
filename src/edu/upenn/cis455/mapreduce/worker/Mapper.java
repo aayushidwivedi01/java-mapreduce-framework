@@ -44,7 +44,7 @@ public class Mapper extends Thread {
 					String value = line.split("\t", 2)[1];
 					System.out.print("KEY CONTENT before writting: " + value + "\n");
 					String[] keys = value.split(" ");
-					MapContext context = new MapContext(numWorkers, spoolOut, workerServlet);
+					MapContext context = new MapContext(numWorkers, spoolOut, workerServlet.getStatusMap());
 					for (String key : keys){
 						job.map(key,  "1",  context);
 					}

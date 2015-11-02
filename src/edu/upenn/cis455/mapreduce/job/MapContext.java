@@ -1,3 +1,4 @@
+
 package edu.upenn.cis455.mapreduce.job;
 
 import java.io.File;
@@ -7,19 +8,19 @@ import java.io.UnsupportedEncodingException;
 import java.math.BigInteger;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.util.HashMap;
 
 import edu.upenn.cis455.mapreduce.Context;
-import edu.upenn.cis455.mapreduce.worker.WorkerServlet;
 
 public class MapContext implements Context{
 	private static BigInteger maxSize = new BigInteger("1461501637330902918203684832716283019655932542975");
 	private int numWorkers;
 	private String spoolOut;
-	private WorkerServlet workerServlet;
-	public MapContext(int numWorkers, String spoolOut, WorkerServlet workerServlet){
+	private HashMap<String, String> statusMap;
+	public MapContext(int numWorkers, String spoolOut, HashMap<String, String> statusMap){
 		this.numWorkers = numWorkers;
 		this.spoolOut = spoolOut;
-		this.workerServlet = workerServlet;
+		this.statusMap = statusMap;
 	}
 	
 	public BigInteger shaHash(String key){
@@ -41,6 +42,13 @@ public class MapContext implements Context{
 		
 	}
 	
+	public void updateKeysWritten(){
+		synchronized(statusMap){
+			int value = Integer.valueOf(statusMap.get("keysWritten")) + 1;
+			statusMap.put("keysWritten", String.valueOf(value));
+		}
+	}
+	
 	private void writeToFile(String filename, String key, String value){
 		File file = new File(filename);
 		if (!file.exists()){
@@ -57,7 +65,7 @@ public class MapContext implements Context{
 			fw.append(key + "\t" + value + "\n");
 			fw.flush();
 			fw.close();
-			workerServlet.updateKeysWritten();
+			updateKeysWritten();
 	
 		} catch (IOException e) {
 			System.out.println("Error in writing to file");
