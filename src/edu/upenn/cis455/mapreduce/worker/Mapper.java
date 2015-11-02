@@ -40,10 +40,15 @@ public class Mapper extends Thread {
 				else {
 					workerServlet.updateKeysRead();
 					String line = queue.remove(0);
-					String key = line.split("\t")[0];
-					String value = line.split("\t")[1];
-					MapContext context = new MapContext(numWorkers, spoolOut);
-					job.map(key,  value,  context);
+					//String key = line.split("\t")[0];
+					String value = line.split("\t", 2)[1];
+					System.out.print("KEY CONTENT before writting: " + value + "\n");
+					String[] keys = value.split(" ");
+					MapContext context = new MapContext(numWorkers, spoolOut, workerServlet);
+					for (String key : keys){
+						job.map(key,  "1",  context);
+					}
+					
 
 				}
 			}

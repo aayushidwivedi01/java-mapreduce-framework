@@ -8,7 +8,7 @@
          <servlet-class>edu.upenn.cis455.mapreduce.worker.WorkerServlet</servlet-class>
          <init-param>
            <param-name>storagedir</param-name>
-           <param-value>/home/cis455/storage/</param-value>
+           <param-value>/home/cis455/storage2/</param-value>
          </init-param>
          <init-param>
            <param-name>master</param-name>
@@ -16,7 +16,7 @@
          </init-param>
          <init-param>
            <param-name>worker</param-name>
-           <param-value>8080</param-value>
+           <param-value>8082</param-value>
          </init-param>
          <load-on-startup>2</load-on-startup>
      </servlet>

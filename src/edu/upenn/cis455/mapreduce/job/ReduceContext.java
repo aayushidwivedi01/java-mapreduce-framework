@@ -5,11 +5,14 @@ import java.io.FileWriter;
 import java.io.IOException;
 
 import edu.upenn.cis455.mapreduce.Context;
+import edu.upenn.cis455.mapreduce.worker.WorkerServlet;
 
 public class ReduceContext implements Context{
 	private String outputDIR;
-	public ReduceContext(String outputDIR){
+	private WorkerServlet workerServlet;
+	public ReduceContext(String outputDIR, WorkerServlet ws){
 		this.outputDIR = outputDIR;
+		this.workerServlet = ws;
 	}
 	
 	@Override
@@ -30,6 +33,7 @@ public class ReduceContext implements Context{
 			fw.append(key + "\t" + value + "\n");
 			fw.flush();
 			fw.close();
+			workerServlet.updateKeysWritten();
 		} catch (IOException e) {
 			System.out.println("Error while writing to output file");
 			e.printStackTrace();

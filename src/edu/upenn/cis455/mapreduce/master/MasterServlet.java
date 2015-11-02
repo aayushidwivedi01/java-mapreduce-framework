@@ -25,22 +25,33 @@ public class MasterServlet extends HttpServlet {
   
   public void updateActiveWorkerList(){
 	  for (String worker : workerstatusMap.keySet()){
-		  WorkerStatus ws = workerstatusMap.get(worker);
+		  WorkerStatus ws;
+		  synchronized(workerstatusMap){
+			 ws = workerstatusMap.get(worker);
+		  }
+		 
 		  long timestamp = ws.getTimestamp();
 		  long currTime = (new Date()).getTime();
 		  if (currTime - timestamp > 30000 && activeWorkers.contains(worker)){
 			  activeWorkers.remove(worker);
 		  }
 		  else if (!activeWorkers.contains(worker)){
+			  System.out.println("BEFORE adding new worker: " + activeWorkers.toString());
 			  activeWorkers.add(worker);
+			  System.out.println("AFTER adding new worker: " + activeWorkers.toString());
+
 		  }
 	  }
   }
   
   public boolean canAllocateJob(){
 	  boolean flag = true;
+	  WorkerStatus ws;
 	  for (String worker : activeWorkers){
-		  WorkerStatus ws = workerstatusMap.get(worker);
+		  synchronized(workerstatusMap){
+			  ws = workerstatusMap.get(worker);
+		  }
+		   
 		 // System.out.println("Worker status: " + ws.getStatus());
 		  if ( !ws.getStatus().equals("idle")){
 			  flag = false;
@@ -76,8 +87,13 @@ public class MasterServlet extends HttpServlet {
  
   private boolean getMapStatus(){
 	  boolean done = true;
+	  WorkerStatus workerstatus;
 	  for (String worker : activeWorkers){
-		  WorkerStatus workerstatus = workerstatusMap.get(worker);
+		  System.out.println("WORKER in ACTIVE WORKER LIST : " + worker);
+		  synchronized(workerstatusMap){
+			  workerstatus = workerstatusMap.get(worker);
+		  }
+		
 		  if (workerstatus.getStatus().equalsIgnoreCase("waiting")){
 			  continue;
 		  }
@@ -92,8 +108,12 @@ public class MasterServlet extends HttpServlet {
   
   private boolean getReduceStatus(){
 	  boolean done = true;
+	  WorkerStatus workerstatus;
 	  for (String worker : activeWorkers){
-		  WorkerStatus workerstatus = workerstatusMap.get(worker);
+		  synchronized(workerstatusMap){
+			  workerstatus = workerstatusMap.get(worker);
+		  }
+		  
 		  if (workerstatus.getStatus().equalsIgnoreCase("idle")){
 			  continue;
 		  }
@@ -107,9 +127,11 @@ public class MasterServlet extends HttpServlet {
   }
   
   private void sendPost(String requestType, String body){
+	  System.out.println("LIST OF ACTIVE WORKERS BEFORE POST: " + activeWorkers.toString());
 	  for (String key : activeWorkers){
 		  String ip = key.split(":")[0];
 		  int port = Integer.parseInt(key.split(":")[1]);
+		  System.out.println("Sending"+  requestType + "to :" + ip + " : " + port);
 		  try {
 			Socket socket = new Socket(ip, port);
 			OutputStream out = socket.getOutputStream();
@@ -178,7 +200,11 @@ public class MasterServlet extends HttpServlet {
 	  if (pathInfo.equals("/workerstatus")){
 		  long timestamp = new Date().getTime();
 		  WorkerStatus ws = new WorkerStatus(request, timestamp);
-		  workerstatusMap.put(ws.getIpPort(), ws);	
+		  synchronized(workerstatusMap){
+			  workerstatusMap.put(ws.getIpPort(), ws);	
+		  }
+		  
+		 
 		  updateActiveWorkerList();
 		  
 		  //check if any jobs are on the job queue
@@ -188,20 +214,22 @@ public class MasterServlet extends HttpServlet {
 			 
 			  if (jobStatus.equalsIgnoreCase("mapping")){
 				  if (getMapStatus()){
+					  job.setStatus("reducing");
 					  System.out.println("Reducing...");
 					  //POST a /runreduce request to workers
 					  String body = getReduceBody(jobs.get(0));
+					  System.out.println("RUNNNNNNN REDUCEEEE");
 					  sendPost("/worker/runreduce", body);
-					  job.setStatus("reducing");
+					  
 				  }
 			  } else if (jobStatus.equals("reducing")){
 				  if (getReduceStatus()){
-					  System.out.println("Job has been completed");
 					  jobs.remove(0);
+					  System.out.println("Job has been completed");
 					  if (!jobs.isEmpty()){
+						  jobs.get(0).setStatus("mapping");
 						  System.out.println("Dequeing job");
 						  System.out.println("Maping...");
-						  jobs.get(0).setStatus("mapping");
 						  String body = getMapBody(jobs.get(0));
 						  sendPost("/worker/runmap", body);		
 					  }

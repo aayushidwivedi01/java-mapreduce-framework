@@ -16,25 +16,25 @@ public class HtmlPages {
 		html.append("<td>Num keys read</td>");
 		html.append("<td>Num keys written</td>");
 		html.append("</tr>");
-		
-		for (String key : map.keySet()){
-			WorkerStatus ws = map.get(key);
-			long timestamp = ws.getTimestamp();
-			long currTime = new Date().getTime();
-			if (currTime - timestamp < 30000){
-				html.append("<tr>");
-				html.append("<td>"+ ws.getIpPort() +"</td>");
-				html.append("<td>"+ ws.getJob() +"</td>");
-				System.out.println("Status: " + ws.getStatus());
-				html.append("<td>"+ ws.getStatus() +"</td>");
-				System.out.println("Status: " + ws.getKeysRead());
-				html.append("<td>" + ws.getKeysRead() + "</td>");
-				html.append("<td>"+ ws.getKeysWritten() + "</td>");
-				html.append("</tr>");
+		synchronized(map){
+			for (String key : map.keySet()){
+				WorkerStatus ws = map.get(key);
+				long timestamp = ws.getTimestamp();
+				long currTime = new Date().getTime();
+				if (currTime - timestamp < 30000){
+					html.append("<tr>");
+					html.append("<td>"+ ws.getIpPort() +"</td>");
+					html.append("<td>"+ ws.getJob() +"</td>");
+					html.append("<td>"+ ws.getStatus() +"</td>");
+					html.append("<td>" + ws.getKeysRead() + "</td>");
+					html.append("<td>"+ ws.getKeysWritten() + "</td>");
+					html.append("</tr>");
+				}
+				
+				
 			}
-			
-			
 		}
+		
 		
 		html.append("</table>");
 		html.append("</br></br>");

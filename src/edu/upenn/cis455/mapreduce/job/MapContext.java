@@ -9,14 +9,17 @@ import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 
 import edu.upenn.cis455.mapreduce.Context;
+import edu.upenn.cis455.mapreduce.worker.WorkerServlet;
 
 public class MapContext implements Context{
 	private static BigInteger maxSize = new BigInteger("1461501637330902918203684832716283019655932542975");
 	private int numWorkers;
 	private String spoolOut;
-	public MapContext(int numWorkers, String spoolOut){
+	private WorkerServlet workerServlet;
+	public MapContext(int numWorkers, String spoolOut, WorkerServlet workerServlet){
 		this.numWorkers = numWorkers;
 		this.spoolOut = spoolOut;
+		this.workerServlet = workerServlet;
 	}
 	
 	public BigInteger shaHash(String key){
@@ -51,14 +54,10 @@ public class MapContext implements Context{
 		
 		try {
 			FileWriter fw = new FileWriter(filename, true);
-			String[] words = value.split(" ");
-			String line ;
-			for (String word : words){
-				line = word + "\t" + "1\n";
-				fw.append(line);
-
-			}
+			fw.append(key + "\t" + value + "\n");
+			fw.flush();
 			fw.close();
+			workerServlet.updateKeysWritten();
 	
 		} catch (IOException e) {
 			System.out.println("Error in writing to file");

@@ -67,7 +67,7 @@ public class HeartBeat extends Thread{
 				
 			} catch (InterruptedException e) {
 				System.out.println("HeartBeat thread interrrupted");
-				e.printStackTrace();
+				//e.printStackTrace();
 			} catch (IOException e){
 				//System.out.println("Error opening client socket");
 				

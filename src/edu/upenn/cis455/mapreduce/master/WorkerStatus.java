@@ -19,10 +19,12 @@ public class WorkerStatus {
 		this.request = request;
 		parseWorkerStatus();
 		
+		
 	}
 	
 	public void parseWorkerStatus(){
 		port = request.getParameter("port");
+		System.out.println("Port of worker: " + port);
 		status = request.getParameter("status");
 		job = request.getParameter("job");
 		keysRead = request.getParameter("keysRead");

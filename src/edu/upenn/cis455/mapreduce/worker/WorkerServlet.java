@@ -15,6 +15,7 @@ import edu.upenn.cis455.mapreduce.job.WordCount;
 
 public class WorkerServlet extends HttpServlet {
 	private static HashMap<String, String> statusMap;
+	private HeartBeat heartBeat;
 	private int numWorkers;
 	private String output;
 	static final long serialVersionUID = 455555002;
@@ -28,11 +29,15 @@ public class WorkerServlet extends HttpServlet {
 	private LinkedList<String> reduceData = new LinkedList<>();
 
 	public void init() {
+		System.out.println("Initializing worker servlet");
+
 		statusMap = new HashMap<>();
 		statusMapInit();
 		String masterPort = getServletConfig().getInitParameter("master");
-		HeartBeat heartBeat = new HeartBeat(masterPort, "8080");
+		String workerPort = getServletConfig().getInitParameter("worker");
+		heartBeat = new HeartBeat(masterPort, workerPort);
 		heartBeat.start();
+		
 	}
 
 	public void statusMapInit() {
@@ -99,7 +104,18 @@ public class WorkerServlet extends HttpServlet {
 		}
 		
 	}
-
+	public void resetKeysRead(){
+		synchronized(statusMap){
+			statusMap.put("keysRead", "0");
+		}
+	}
+	
+	public void resetKeysWritten(){
+		synchronized(statusMap){
+			statusMap.put("keysWritten", "0");
+		}
+	}
+	
 	public boolean getStop() {
 		return stop;
 	}
@@ -212,11 +228,13 @@ public class WorkerServlet extends HttpServlet {
 	}
 	public void createDir(String name) {
 		File dir = new File(name);
-
+		System.out.println("Deleting dir: " + name);
 		if (dir.exists()) {
 			File[] files = dir.listFiles();
-			for (File file : files)
+			for (File file : files){
+				System.out.println("Deleting file: " + file.getAbsolutePath());
 				file.delete();
+				}
 			dir.delete();
 		}
 
@@ -277,6 +295,9 @@ public class WorkerServlet extends HttpServlet {
 		}
 	}
 	
+	/**
+	 * Sort map output.
+	 */
 	private void sortMapOutput(){
 		StringBuilder sortedContent = null;
 		String sortScript = spoolIn + "/sort.sh";
@@ -302,18 +323,23 @@ public class WorkerServlet extends HttpServlet {
 		try {
 			file.setExecutable(true);
 			Process p = Runtime.getRuntime().exec(sortScript);
-			 BufferedReader br = new BufferedReader(
+			p.waitFor();
+			BufferedReader br = new BufferedReader(
 		                new InputStreamReader(p.getInputStream()));
 			 sortedContent = new StringBuilder();
 			 String prevLine = br.readLine();
+			 System.out.println("Starting sort...:" + prevLine);
 			 sortedContent.append(prevLine +"\n");
 			 String line;
 			 while ((line = br.readLine()) != null){
 				 if (line.equals(prevLine)){
+					 System.out.println("Line = prevLine: " + line);
 					 sortedContent.append(line + "\n");
 				 }
 				 else {
 					 synchronized(reduceData){
+						 System.out.println("SortedContent written to queue: " 
+					 + sortedContent.toString());
 						 reduceData.add(sortedContent.toString());
 						 reduceData.notify();
 					 }
@@ -325,8 +351,6 @@ public class WorkerServlet extends HttpServlet {
 				 
 				 
 			 }
-			 p.waitFor();
-			 p.destroy();
 		} catch (IOException e) {
 			System.out.println("Error while executing sort.sh");
 			e.printStackTrace();
@@ -335,6 +359,15 @@ public class WorkerServlet extends HttpServlet {
 			e.printStackTrace();
 		}
 		
+	}
+	
+	private void clearSpoolIn(){
+		File dir = new File(spoolIn);
+		File[] files = dir.listFiles();
+		
+		for (File file : files){
+			file.delete();
+		}
 	}
 	
 	public void doPost(HttpServletRequest request, HttpServletResponse response) {
@@ -406,6 +439,7 @@ public class WorkerServlet extends HttpServlet {
 				}
 				
 				pushdata();
+				System.out.println("Done mapping");
 				updateStatus("waiting");
 				//now push data to corresponding workers
 				
@@ -425,6 +459,7 @@ public class WorkerServlet extends HttpServlet {
 
 			
 		} else if (pathInfo.equals("/runreduce")) {
+			System.out.println("GOT REDUCE JOB FROM MASTER");
 			String reduceJob = request.getParameter("job");
 			int numThreads = Integer.valueOf(request.getParameter("numThreads"));
 			output = request.getParameter("output");
@@ -433,6 +468,7 @@ public class WorkerServlet extends HttpServlet {
 					+ output;
 			
 			updateStatus("reducing");
+			resetKeysWritten();
 			createDir(output);
 			
 			try{
@@ -463,7 +499,10 @@ public class WorkerServlet extends HttpServlet {
 					}
 				}
 				
+				System.out.println("Job completed");
 				
+				resetKeysRead();
+				heartBeat.interrupt();
 				updateStatus("idle");
 				
 				

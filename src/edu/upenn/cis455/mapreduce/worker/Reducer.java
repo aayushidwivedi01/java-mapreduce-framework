@@ -35,16 +35,14 @@ public class Reducer extends Thread{
 				}
 				
 				else{
-					workerServlet.updateKeysWritten();
 					String allLines = data.remove(0);
-					
 					String[] lines = allLines.split("\n");
 					String key = lines[0].split("\t")[0];
 					String[] values = new String[lines.length];
 					for (int i = 0 ; i < lines.length ; i++){
 						values[i] = lines[i].split("\t")[1];
 					}
-					ReduceContext context = new ReduceContext(outputDIR);
+					ReduceContext context = new ReduceContext(outputDIR, workerServlet);
 				
 					job.reduce(key, values, context);
 				}
