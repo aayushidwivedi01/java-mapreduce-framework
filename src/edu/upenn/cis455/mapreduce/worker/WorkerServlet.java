@@ -12,21 +12,54 @@ import javax.servlet.http.HttpServletResponse;
 
 import edu.upenn.cis455.mapreduce.Job;
 
+/**
+ * The Class WorkerServlet.
+ * Orchestrates the job of map and reduce
+ */
 public class WorkerServlet extends HttpServlet {
+	
+	/** The status map. */
 	private HashMap<String, String> statusMap;
+	
+	/** The heart beat. */
 	private HeartBeat heartBeat;
+	
+	/** The num workers. */
 	private int numWorkers;
+	
+	/** The output. */
 	private String output;
+	
+	/** The Constant serialVersionUID. */
 	static final long serialVersionUID = 455555002;
+	
+	/** The mapper. */
 	private Mapper[] mapper;
+	
+	/** The reducer. */
 	private Reducer[] reducer;
+	
+	/** The queue. */
 	private LinkedList<String> queue = new LinkedList<>();
+	
+	/** The stop. */
 	private static boolean stop = false;
+	
+	/** The spool out. */
 	private String spoolOut;
+	
+	/** The spool in. */
 	private String spoolIn;
+	
+	/** The all workers. */
 	private HashMap<String, String> allWorkers;
+	
+	/** The reduce data. */
 	private LinkedList<String> reduceData = new LinkedList<>();
 
+	/* (non-Javadoc)
+	 * @see javax.servlet.GenericServlet#init()
+	 */
 	public void init() {
 		System.out.println("Initializing worker servlet");
 
@@ -39,6 +72,9 @@ public class WorkerServlet extends HttpServlet {
 		
 	}
 
+	/**
+	 * Status map init.
+	 */
 	public void statusMapInit() {
 		String port = getServletConfig().getInitParameter("worker");
 		statusMap.put("port", port);
@@ -48,34 +84,74 @@ public class WorkerServlet extends HttpServlet {
 		statusMap.put("keysWritten", "0");
 	}
 
+	/**
+	 * Gets the spool out.
+	 *
+	 * @return the spool out
+	 */
 	public String getSpoolOut() {
 		return spoolOut;
 	}
 
+	/**
+	 * Gets the spool in.
+	 *
+	 * @return the spool in
+	 */
 	public String getSpoolIn() {
 		return spoolIn;
 	}
 	
+	/**
+	 * Gets the queue.
+	 *
+	 * @return the queue
+	 */
 	public LinkedList<String> getQueue(){
 		return queue;
 	}
 	
+	/**
+	 * Gets the num workers.
+	 *
+	 * @return the num workers
+	 */
 	public int getNumWorkers(){
 		return numWorkers;
 	}
 	
+	/**
+	 * Gets the output dir.
+	 *
+	 * @return the output dir
+	 */
 	public String getOutputDIR(){
 		return output;
 	}
 	
+	/**
+	 * Gets the reduce data.
+	 *
+	 * @return the reduce data
+	 */
 	public LinkedList<String> getReduceData(){
 		return reduceData;
 	}
 	
+	/**
+	 * Gets the status map.
+	 *
+	 * @return the status map
+	 */
 	public HashMap<String, String> getStatusMap() {
 		return statusMap;
 	}
 
+	/**
+	 * Update status.
+	 *
+	 * @param status the status
+	 */
 	public void updateStatus(String status) {
 		synchronized(statusMap){
 			statusMap.put("status", status);
@@ -83,6 +159,9 @@ public class WorkerServlet extends HttpServlet {
 		
 	}
 	
+	/**
+	 * Update keys read.
+	 */
 	public void updateKeysRead(){
 		synchronized(statusMap){
 			int value = Integer.valueOf(statusMap.get("keysRead")) + 1;
@@ -90,6 +169,9 @@ public class WorkerServlet extends HttpServlet {
 		}
 	}
 
+	/**
+	 * Update keys written.
+	 */
 	public void updateKeysWritten(){
 		synchronized(statusMap){
 			int value = Integer.valueOf(statusMap.get("keysWritten")) + 1;
@@ -97,28 +179,51 @@ public class WorkerServlet extends HttpServlet {
 		}
 	}
 
+	/**
+	 * Update job.
+	 *
+	 * @param job the job
+	 */
 	public void updateJob(String job) {
 		synchronized(statusMap){
 			statusMap.put("job", job);
 		}
 		
 	}
+	
+	/**
+	 * Reset keys read.
+	 */
 	public void resetKeysRead(){
 		synchronized(statusMap){
 			statusMap.put("keysRead", "0");
 		}
 	}
 	
+	/**
+	 * Reset keys written.
+	 */
 	public void resetKeysWritten(){
 		synchronized(statusMap){
 			statusMap.put("keysWritten", "0");
 		}
 	}
 	
+	/**
+	 * Gets the stop.
+	 *
+	 * @return the stop
+	 */
 	public boolean getStop() {
 		return stop;
 	}
 
+	/**
+	 * Generate mappers.
+	 *
+	 * @param size num of mappers
+	 * @param job class
+	 */
 	public void generateMappers(int size, Job job) {
 		mapper = new Mapper[size];
 		for (int i = 0; i < size; i++) {
@@ -128,6 +233,12 @@ public class WorkerServlet extends HttpServlet {
 		}
 	}
 	
+	/**
+	 * Generate reducers.
+	 *
+	 * @param size num of reducers
+	 * @param job class
+	 */
 	public void generateReducers(int size , Job job){
 		reducer = new Reducer[size];
 		
@@ -138,6 +249,11 @@ public class WorkerServlet extends HttpServlet {
 		}
 	}
 
+	/**
+	 * Read files in input directory.
+	 *
+	 * @param name the directory name
+	 */
 	public void readFiles(String name) {
 		File dir = new File(name);
 		File[] files = dir.listFiles();
@@ -165,6 +281,11 @@ public class WorkerServlet extends HttpServlet {
 
 	}
 
+	/**
+	 * Check mapper status.
+	 *
+	 * @param numWorkers the num of  workers
+	 */
 	private void checkMapperStatus(int numWorkers) {
 		boolean waiting = false;
 		int count = 0;
@@ -195,6 +316,11 @@ public class WorkerServlet extends HttpServlet {
 
 	}
 
+	/**
+	 * Check reducer status.
+	 *
+	 * @param numWorkers the num workers
+	 */
 	private void checkReducerStatus(int numWorkers){
 		boolean waiting = false;
 		int count = 0;
@@ -225,6 +351,12 @@ public class WorkerServlet extends HttpServlet {
 		}
 		
 	}
+	
+	/**
+	 * Creates the dir.
+	 *
+	 * @param name the dir name
+	 */
 	public void createDir(String name) {
 		File dir = new File(name);
 		System.out.println("Deleting dir: " + name);
@@ -240,10 +372,22 @@ public class WorkerServlet extends HttpServlet {
 		dir.mkdir();
 	}
 
+	/**
+	 * Gets the all workers.
+	 *
+	 * @return all workers
+	 */
 	public HashMap<String, String> getAllWorkers() {
 		return allWorkers;
 	}
 
+	/**
+	 * Push.
+	 *
+	 * @param ipPort the ip port
+	 * @param body file content
+	 * @return the string
+	 */
 	private String push(String ipPort, byte[] body){
 		StringBuilder request = new StringBuilder();
 		String ip = ipPort.split(":")[0];
@@ -271,6 +415,9 @@ public class WorkerServlet extends HttpServlet {
 		return request.toString();
 	}
 	
+	/**
+	 * Pushdata.
+	 */
 	private void pushdata(){
 		File dir = new File(spoolOut);
 		File[] files = dir.listFiles();
@@ -337,8 +484,6 @@ public class WorkerServlet extends HttpServlet {
 				 }
 				 else {
 					 synchronized(reduceData){
-						 System.out.println("SortedContent written to queue: " 
-					 + sortedContent.toString());
 						 reduceData.add(sortedContent.toString());
 						 reduceData.notify();
 					 }
@@ -346,9 +491,12 @@ public class WorkerServlet extends HttpServlet {
 					 prevLine = line;
 					 sortedContent = new StringBuilder();
 					 sortedContent.append(prevLine +"\n");
-				 }
-				 
-				 
+				 }	 
+			 }
+			 
+			 synchronized(reduceData){
+				 reduceData.add(sortedContent.toString());
+				 reduceData.notify();
 			 }
 		} catch (IOException e) {
 			System.out.println("Error while executing sort.sh");
@@ -360,6 +508,9 @@ public class WorkerServlet extends HttpServlet {
 		
 	}
 	
+	/**
+	 * Clear spool in.
+	 */
 	private void clearSpoolIn(){
 		File dir = new File(spoolIn);
 		File[] files = dir.listFiles();
@@ -369,6 +520,9 @@ public class WorkerServlet extends HttpServlet {
 		}
 	}
 	
+	/* (non-Javadoc)
+	 * @see javax.servlet.http.HttpServlet#doPost(javax.servlet.http.HttpServletRequest, javax.servlet.http.HttpServletResponse)
+	 */
 	public void doPost(HttpServletRequest request, HttpServletResponse response) {
 		String html = null;
 		String pathInfo = request.getPathInfo();
@@ -545,6 +699,9 @@ public class WorkerServlet extends HttpServlet {
 		}
 	}
 
+	/* (non-Javadoc)
+	 * @see javax.servlet.http.HttpServlet#doGet(javax.servlet.http.HttpServletRequest, javax.servlet.http.HttpServletResponse)
+	 */
 	public void doGet(HttpServletRequest request, HttpServletResponse response)
 			throws java.io.IOException {
 		response.setContentType("text/html");

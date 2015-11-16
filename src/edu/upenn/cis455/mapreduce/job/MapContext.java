@@ -12,17 +12,43 @@ import java.util.HashMap;
 
 import edu.upenn.cis455.mapreduce.Context;
 
+/**
+ *MapContext.
+ *Writes key value pair to files in spool out
+ */
 public class MapContext implements Context{
+	
+	/** The max size. */
 	private static BigInteger maxSize = new BigInteger("1461501637330902918203684832716283019655932542975");
+	
+	/** The num workers. */
 	private int numWorkers;
+	
+	/** The spool out. */
 	private String spoolOut;
+	
+	/** The status map. */
 	private HashMap<String, String> statusMap;
+	
+	/**
+	 * Instantiates a new map context.
+	 *
+	 * @param numWorkers the num workers
+	 * @param spoolOut the spool out
+	 * @param statusMap the status map
+	 */
 	public MapContext(int numWorkers, String spoolOut, HashMap<String, String> statusMap){
 		this.numWorkers = numWorkers;
 		this.spoolOut = spoolOut;
 		this.statusMap = statusMap;
 	}
 	
+	/**
+	 * Sha hash.
+	 *
+	 * @param key the key
+	 * @return the big integer
+	 */
 	public BigInteger shaHash(String key){
 		BigInteger hashedValue = null;
 		try {
@@ -42,6 +68,9 @@ public class MapContext implements Context{
 		
 	}
 	
+	/**
+	 * Update keys written.
+	 */
 	public void updateKeysWritten(){
 		synchronized(statusMap){
 			int value = Integer.valueOf(statusMap.get("keysWritten")) + 1;
@@ -49,6 +78,13 @@ public class MapContext implements Context{
 		}
 	}
 	
+	/**
+	 * Write to file.
+	 *
+	 * @param filename the filename
+	 * @param key the key
+	 * @param value the value
+	 */
 	private void writeToFile(String filename, String key, String value){
 		File file = new File(filename);
 		if (!file.exists()){
@@ -73,6 +109,10 @@ public class MapContext implements Context{
 		}
 		
 	}
+	
+	/* (non-Javadoc)
+	 * @see edu.upenn.cis455.mapreduce.Context#write(java.lang.String, java.lang.String)
+	 */
 	public void write(String key, String value){
 		BigInteger blockSize = maxSize.divide(BigInteger.valueOf(numWorkers));
 		BigInteger hashedKey =  shaHash(key).divide(blockSize);		

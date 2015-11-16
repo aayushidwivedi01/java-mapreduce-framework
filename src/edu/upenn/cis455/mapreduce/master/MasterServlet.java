@@ -11,18 +11,35 @@ import java.util.Map;
 import javax.servlet.*;
 import javax.servlet.http.*;
 
+/**
+ * The Class MasterServlet.
+ */
 public class MasterServlet extends HttpServlet {
 
+  /** The Constant serialVersionUID. */
   static final long serialVersionUID = 455555001;
+  
+  /** The workerstatus map. */
   private HashMap<String,WorkerStatus>workerstatusMap;
+  
+  /** The active workers. */
   private ArrayList<String>activeWorkers;
+  
+  /** The jobs. */
   private LinkedList<JobDetails>jobs;
+  
+  /* (non-Javadoc)
+   * @see javax.servlet.GenericServlet#init()
+   */
   public void init(){
 	  workerstatusMap = new HashMap<>();
 	  activeWorkers = new ArrayList<>();
 	  jobs = new LinkedList<>();
   }
   
+  /**
+   * Update active worker list.
+   */
   public void updateActiveWorkerList(){
 	  for (String worker : workerstatusMap.keySet()){
 		  WorkerStatus ws;
@@ -44,24 +61,13 @@ public class MasterServlet extends HttpServlet {
 	  }
   }
   
-  public boolean canAllocateJob(){
-	  boolean flag = true;
-	  WorkerStatus ws;
-	  for (String worker : activeWorkers){
-		  synchronized(workerstatusMap){
-			  ws = workerstatusMap.get(worker);
-		  }
-		   
-		 // System.out.println("Worker status: " + ws.getStatus());
-		  if ( !ws.getStatus().equals("idle")){
-			  flag = false;
-			  break;
-		  }
-	  }
-	  
-	  return flag;
-  }
 
+  /**
+   * Gets the map body.
+   *
+   * @param jobDetails the job details
+   * @return the map body
+   */
   public String getMapBody(JobDetails jobDetails){
 	  StringBuilder body = new StringBuilder();
 	  body.append("job="+jobDetails.getJob());
@@ -76,6 +82,12 @@ public class MasterServlet extends HttpServlet {
 	  
   }
   
+  /**
+   * Gets the reduce body.
+   *
+   * @param jobDetails the job details
+   * @return the reduce body
+   */
   public String getReduceBody(JobDetails jobDetails){
 	  StringBuilder body = new StringBuilder();
 	  body.append("job="+jobDetails.getJob());
@@ -85,6 +97,11 @@ public class MasterServlet extends HttpServlet {
 	  
   }
  
+  /**
+   * Gets the map status.
+   *
+   * @return the map status
+   */
   private boolean getMapStatus(){
 	  boolean done = true;
 	  WorkerStatus workerstatus;
@@ -106,6 +123,11 @@ public class MasterServlet extends HttpServlet {
 	  return done;
   }
   
+  /**
+   * Gets the reduce status.
+   *
+   * @return the reduce status
+   */
   private boolean getReduceStatus(){
 	  boolean done = true;
 	  WorkerStatus workerstatus;
@@ -126,6 +148,12 @@ public class MasterServlet extends HttpServlet {
 	  return done;
   }
   
+  /**
+   * Send post.
+   *
+   * @param requestType the request type
+   * @param body the body
+   */
   private void sendPost(String requestType, String body){
 	  System.out.println("LIST OF ACTIVE WORKERS BEFORE POST: " + activeWorkers.toString());
 	  for (String key : activeWorkers){
@@ -154,6 +182,9 @@ public class MasterServlet extends HttpServlet {
 	  
   }
   
+  /* (non-Javadoc)
+   * @see javax.servlet.http.HttpServlet#doPost(javax.servlet.http.HttpServletRequest, javax.servlet.http.HttpServletResponse)
+   */
   public void doPost(HttpServletRequest request, HttpServletResponse response) throws IOException{
 	  String html = null;
 	  String pathInfo = request.getPathInfo();
@@ -164,13 +195,6 @@ public class MasterServlet extends HttpServlet {
 		  JobDetails job= new JobDetails(request);
 		  System.out.println("Queueing new job");
 		  jobs.add(job);
-//		  if (!canAllocateJob()){
-//			  //TO-DO: queue the job
-//			  
-//			//  html = HtmlPages.busyWorkersPage();
-//			  
-//		  }
-//		  
 		  System.out.println("Maping...");
 		  html = HtmlPages.runMapPage();
 		  jobs.get(0).setStatus("mapping");
@@ -191,6 +215,9 @@ public class MasterServlet extends HttpServlet {
       response.flushBuffer();
   }
   
+  /* (non-Javadoc)
+   * @see javax.servlet.http.HttpServlet#doGet(javax.servlet.http.HttpServletRequest, javax.servlet.http.HttpServletResponse)
+   */
   public void doGet(HttpServletRequest request, HttpServletResponse response) 
        throws java.io.IOException
   {
@@ -239,7 +266,7 @@ public class MasterServlet extends HttpServlet {
 			  System.out.println("No jobs on queue");
 		  }
 		  if (html == null)
-			  html = "<html> Done </html>";
+			  html = "<html> Submitted </html>";
 	  }
 	  else if (pathInfo.equals("/status")){
 		  html = HtmlPages.statusPage(workerstatusMap);

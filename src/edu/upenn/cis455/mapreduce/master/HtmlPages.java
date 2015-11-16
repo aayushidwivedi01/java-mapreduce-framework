@@ -3,11 +3,22 @@ package edu.upenn.cis455.mapreduce.master;
 import java.util.Date;
 import java.util.HashMap;
 
+/**
+ * The Class HtmlPages.
+ * Creates HTML pages for MasterServlet
+ */
 public class HtmlPages {
 	
+	/**
+	 * Status page.
+	 *
+	 * @param map the map
+	 * @return the string
+	 */
 	public static String statusPage(HashMap<String, WorkerStatus> map){
 		StringBuilder html = new StringBuilder();
-		html.append("<html><h3> Worker Status</h3>");
+		html.append("<html><h3>Map Reduce Status Page : Aayushi Dwivedi : aayushi</br>"
+				+ "</h3><h3> Worker Status</h3>");
 		html.append("<table border = \"1\" style = \"width:100%\" >" );
 		html.append("<tr>");
 		html.append("<td>Worker IP:port</td>");
@@ -38,17 +49,22 @@ public class HtmlPages {
 		
 		html.append("</table>");
 		html.append("</br></br>");
-		html.append("<form action=\"/master/status/newjob\" method =\"post\"> Job Form</br></br><label>Class name of the job:</label></br> ");
-		html.append("<input type = \"text\" name = \"job\"/></br><label>Input directory:</label> </br> ");
-		html.append("<input type = \"text\" name = \"input\"/></br><label>Output directory:</label></br>  ");
-		html.append("<input type = \"text\" name = \"output\"/></br><label>No. of map threads:</label> </br> ");
-		html.append("<input type = \"text\" name = \"numMap\"/></br><label>No. of reduce threads: </label></br>");
+		html.append("<form action=\"/master/status/newjob\" method =\"post\"><h3> Job Form </h3><label>Class name of the job:</label></br> ");
+		html.append("<input type = \"text\" name = \"job\"/></br></br><label>Input directory:</label> </br> ");
+		html.append("<input type = \"text\" name = \"input\"/></br></br><label>Output directory:</label></br>  ");
+		html.append("<input type = \"text\" name = \"output\"/></br></br><label>No. of map threads:</label> </br> ");
+		html.append("<input type = \"text\" name = \"numMap\"/></br></br><label>No. of reduce threads: </label></br>");
 		html.append("<input type = \"text\" name = \"numReduce\"/></br>");
 		html.append("<input type=\"submit\" value=\"Submit\"></form>");
 		html.append("</html>");
 		return html.toString();
 	}
 	
+	/**
+	 * Run map page.
+	 *
+	 * @return the string
+	 */
 	public static String runMapPage(){
 		//TO-DO
 		StringBuilder html = new StringBuilder();
@@ -57,6 +73,11 @@ public class HtmlPages {
 		return html.toString();
 	}
 	
+	/**
+	 * Busy workers page.
+	 *
+	 * @return the string
+	 */
 	public static String busyWorkersPage(){
 		StringBuilder html = new StringBuilder();
 	
@@ -68,6 +89,12 @@ public class HtmlPages {
 		
 	}
 	
+	/**
+	 * Form run map request.
+	 *
+	 * @param jobDetails the job details
+	 * @return the string
+	 */
 	public static String formRunMapRequest(JobDetails jobDetails){
 		StringBuilder html = new StringBuilder();
 		
